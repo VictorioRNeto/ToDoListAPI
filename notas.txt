@@ -1,0 +1,134 @@
+
+Ponto de partida para apis web recebe informações e configura
+ambiente
+var builder = WebApplication.CreateBuilder(args);
+
+
+CreateBuilder → prepara tudo
+Services      → registra coisas
+Build         → cria a app
+Run           → liga o servidor
+==============================Configurando============================================================================
+builder.Services.AddDbContext<TodoDb>
+
+Determina TodoDb como banco de dados ultilizavel e o configura 
+builder.Services.AddDbContext<TodoDb>(
+    opt => opt.UseInMemoryDatabase("TodoList")
+);
+“Registre o TodoDb como serviço e configure ele para usar um banco em memória chamado TodoList.”
+
+Builder.Services
+
+Container de injeção de dependencias
+
+AddDbContext
+
+“Sempre que alguém pedir um TodoDb, eu sei como criar.”
+
+opt 
+
+uma lambda que equivale a:
+
+(options) =>
+{
+    options.UseInMemoryDatabase("TodoList");
+}
+
+
+UseInMemoryDatabase
+
+Usa um banco em memória não grava em disco some ao reiniciar
+
+================================Controle de erros============================================================================
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+AddDatabaseDeveloperPageExceptionFilter deixa erros de banco legíveis durante o desenvolvimento.
+
+===============================Montando==============================================================================
+var app = builder.Build();
+
+Build() transforma configuração em aplicação pronta para rodar.
+
+Junta toda a congfiguração como em um"Motor" onde cada peça faz um papel (Rotor, girabrequin, valvula, ...)
+===============================Controlando====================================================================================
+
+app.MapGet("/todoitems", async (TodoDb db) =>
+    await db.Todos.ToListAsync());
+
+“Quando alguém fizer um GET em /todoitems, execute essa lógica e devolva a lista de todos.”
+
+Entrega toda a tabela apra consulta sem filtros.
+
+MapGet
+ Mapeia uma rota HTTP GET
+
+o mesmo que 
+[HttpGet]
+public IActionResult Get()
+
+sem controller
+
+/todoitems
+é a URL => GET /todoitems (https://www.index.com)
+
+(TodoDb db)
+
+Cria uma instancia a injeta automaticamente (injeção de dependencias sem construtor)
+mesmo que: 
+public TodoController(TodoDb db)
+
+async (...) =>
+    await ...
+
+
+evita travar a thread é obrigatorio para acesso ao banco
+
+
+db.Todos.ToListAsync()
+
+injeçãod e codigo sql em banco de dados "SLECT * FROM Todos", Sendo Todos o BD.
+
+----------------
+GET /todoitems
+   ↓
+Middleware
+   ↓
+MapGet
+   ↓
+Injeção do TodoDb
+   ↓
+Consulta no banco
+   ↓
+JSON 200 OK
+------------------
+
+=====================================================================================
+app.MapGet("/todoitems/complete", async (TodoDb db) => await db.Todos.Where(t => t.IsComplete).ToListAsync());
+
+Aplicando filtros de SQL "Where" para ler apenas valores refistrados na variavel IsComplete (true)
+
+=======================================================================================
+app.MapGet("/todoitems/{id}", async (int id, TodoDb db) =>
+    await db.Todos.FindAsync(id)
+        is Todo todo
+            ? Results.Ok(todo)
+            : Results.NotFound());
+
+Filtro com base em ID parte da URL vira parametro {}
+
+============================Update==========================================================
+app.MapPost("/todoitems", async (Todo todo, TodoDb db) =>
+{
+    db.Todos.Add(todo);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/todoitems/{todo.Id}", todo);
+});
+
+Cria um novo item no banco e retorna 201 Created com a localização do recurso criado.
+
+await db.SaveChangesAsync();
+
+Codigo SQL para INSERT.
+
+###Middleware é um pedaço de código que fica no meio do caminho da requisição HTTP.
