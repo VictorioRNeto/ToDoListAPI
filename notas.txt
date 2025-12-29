@@ -130,5 +130,47 @@ Cria um novo item no banco e retorna 201 Created com a localização do recurso 
 await db.SaveChangesAsync();
 
 Codigo SQL para INSERT.
+================================================================================================
+
+app.MapPut("/todoitems/{id}", async (int id, Todo inputTodo, TodoDb db) =>
+{
+    var todo = await db.Todos.FindAsync(id);
+
+    if (todo is null) return Results.NotFound();
+
+    todo.Name = inputTodo.Name;
+    todo.IsComplete = inputTodo.IsComplete;
+
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
+
+-----------------
+Recebe id pela URL
+
+Recebe dados atualizados pelo body
+
+Busca no banco
+
+Se não existir → 404
+
+Se existir → atualiza campos
+
+Salva
+
+Retorna 204
+
+
+
+
+
+
+
+
 
 ###Middleware é um pedaço de código que fica no meio do caminho da requisição HTTP.
+==============================================Projeto Clone================================================================================================
+ https://learn.microsoft.com/pt-br/aspnet/core/tutorials/min-web-api?view=aspnetcore-10.0&tabs=visual-studio-code#add-the-api-code
+ =============================================================================================================================================
